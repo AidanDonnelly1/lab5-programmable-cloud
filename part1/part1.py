@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import time
-from pprint import pprint
 
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
-import google.auth
 
 PROJECT = "lab-5-programable-cloud"
 ZONE = "us-west1-a"
 VM_NAME = "lab-5"
-
-#
-# Stub code - just lists all instances
-#
-def list_instances(compute, project, zone):
-    result = compute.instances().list(project=project, zone=zone).execute()
-    return result['items'] if 'items' in result else None
 
 # START From https://github.com/GoogleCloudPlatform/python-docs-samples/blob/c31c5866a088f4aa47ef1d87e26aefd04da08529/compute/api/create_instance.py
 def create_instance(
@@ -84,9 +74,6 @@ def create_instance(
     return compute.instances().insert(project=project, zone=zone, body=config).execute()
 
 
-# [END compute_create_instance]
-# [START compute_wait_for_operation]
-
 def wait_for_operation(
     compute: object,
     project: str,
@@ -121,7 +108,6 @@ def wait_for_operation(
         time.sleep(1)
 
 
-# [END compute_wait_for_operation]
 # END From https://github.com/GoogleCloudPlatform/python-docs-samples/blob/c31c5866a088f4aa47ef1d87e26aefd04da08529/compute/api/create_instance.py
 
 def main() -> None:
