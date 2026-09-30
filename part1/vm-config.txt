@@ -1,0 +1,35 @@
+{
+  "name": "lab-5",
+  "machineType": "zones/ZONE/machineTypes/e2-micro",
+  "disks": [
+    {
+      "boot": true,
+      "autoDelete": true,
+      "initializeParams": {
+        "sourceImage": "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts",
+        "diskType": "zones/ZONE/diskTypes/pd-standard",
+        "diskSizeGb": "10"
+      }
+    }
+  ],
+  "networkInterfaces": [
+    {
+      "network": "global/networks/default",
+      "accessConfigs": [
+        { "type": "ONE_TO_ONE_NAT", "name": "External NAT" }
+      ]
+    }
+  ],
+  "serviceAccounts": [
+    {
+      "email": "default",
+      "scopes": [
+        "https://www.googleapis.com/auth/devstorage.read_only",
+        "https://www.googleapis.com/auth/logging.write"
+      ]
+    }
+  ],
+  "metadata": {
+    "items": []
+  }
+}

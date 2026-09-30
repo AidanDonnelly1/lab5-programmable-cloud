@@ -123,14 +123,18 @@ def wait_for_operation(
 # [END compute_wait_for_operation]
 # END From https://github.com/GoogleCloudPlatform/python-docs-samples/blob/c31c5866a088f4aa47ef1d87e26aefd04da08529/compute/api/create_instance.py
 
+
 def main() -> None:
     compute = googleapiclient.discovery.build("compute", "v1")
 
     print("Creating instance.")
+
     op = create_instance(compute, PROJECT, ZONE, VM_NAME)
     wait_for_operation(compute, PROJECT, ZONE, op["name"])
-
+         
+    
     result = compute.firewalls().list(project=PROJECT, filter='name="allow-5000"').execute()
+    
     if "items" not in result:
         firewall_body = {
             "name": "allow-5000",
@@ -140,7 +144,7 @@ def main() -> None:
             "targetTags": ["allow-5000"],
             "allowed": [{"IPProtocol": "tcp", "ports": ["5000"]}],
         }
-        print("Creating firewall rule allow-5000...")
+            
         op = compute.firewalls().insert(project=PROJECT, body=firewall_body).execute()
         while True:
             fw_op = compute.globalOperations().get(project=PROJECT, operation=op["name"]).execute()
@@ -151,20 +155,21 @@ def main() -> None:
             time.sleep(1)
     else:
         print("Firewall rule allow-5000 already exists.")
+        instance = compute.instances().get(project=PROJECT, zone=ZONE, instance=VM_NAME).execute()
+        fingerprint = instance["tags"]["fingerprint"]
+        op = compute.instances().setTags(
+            project=PROJECT,
+            zone=ZONE,
+            instance=VM_NAME,
+            body={"items": ["allow-5000"], "fingerprint": fingerprint},
+        ).execute()
+        wait_for_operation(compute, PROJECT, ZONE, op["name"])
+    
+        # Print the URL
+        instance = compute.instances().get(project=PROJECT, zone=ZONE, instance=VM_NAME).execute()
+        ip = instance["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
+        print(f"\nThe Flask application will be available in a few minutes at:\nhttp://{ip}:5000")
 
-    instance = compute.instances().get(project=PROJECT, zone=ZONE, instance=VM_NAME).execute()
-    fingerprint = instance["tags"]["fingerprint"]
-    op = compute.instances().setTags(
-        project=PROJECT,
-        zone=ZONE,
-        instance=VM_NAME,
-        body={"items": ["allow-5000"], "fingerprint": fingerprint},
-    ).execute()
-    wait_for_operation(compute, PROJECT, ZONE, op["name"])
-
-    instance = compute.instances().get(project=PROJECT, zone=ZONE, instance=VM_NAME).execute()
-    ip = instance["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
-    print(f"\nThe Flask application will be available in a few minutes at:\nhttp://{ip}:5000")
 
 if __name__ == "__main__":
     main()
