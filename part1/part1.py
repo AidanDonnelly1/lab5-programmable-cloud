@@ -6,6 +6,7 @@ import time
 from pprint import pprint
 
 import googleapiclient.discovery
+from googleapiclient.errors import HttpError
 import google.auth
 
 PROJECT = "lab-5-programable-cloud"
@@ -126,9 +127,15 @@ def wait_for_operation(
 def main() -> None:
     compute = googleapiclient.discovery.build("compute", "v1")
 
-    print("Creating instance.")
-    op = create_instance(compute, PROJECT, ZONE, VM_NAME)
-    wait_for_operation(compute, PROJECT, ZONE, op["name"])
+    try:
+        compute.instances().get(project=PROJECT, zone=ZONE, instance=VM_NAME).execute()
+        print("Instance already exists.")
+    except HttpError as e:
+        if e.resp.status != 404:
+            raise
+        print("Creating instance.")
+        op = create_instance(compute, PROJECT, ZONE, VM_NAME)
+        wait_for_operation(compute, PROJECT, ZONE, op["name"])
 
     result = compute.firewalls().list(project=PROJECT, filter='name="allow-5000"').execute()
     if "items" not in result:
