@@ -1,28 +1,60 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
-import time
-from pprint import pprint
 
 import googleapiclient.discovery
-import google.auth
 import google.oauth2.service_account as service_account
 
-#
-# Use Google Service Account - See https://google-auth.readthedocs.io/en/latest/reference/google.oauth2.service_account.html#module-google.oauth2.service_account
-#
-credentials = service_account.Credentials.from_service_account_file(filename='service-credentials.json')
-project = os.getenv('GOOGLE_CLOUD_PROJECT') or 'FILL IN YOUR PROJECT'
-service = googleapiclient.discovery.build('compute', 'v1', credentials=credentials)
+PROJECT = "lab-5-programable-cloud"
+ZONE = "us-west1-a"
+VM_NAME = "lab-5-vm1"
+VM2_NAME = "lab-5-vm2"
+HERE = os.path.dirname(os.path.abspath(__file__))
 
-#
-# Stub code - just lists all instances
-#
-def list_instances(compute, project, zone):
-    result = compute.instances().list(project=project, zone=zone).execute()
-    return result['items'] if 'items' in result else None
 
-print("Your running instances are:")
-for instance in list_instances(service, project, 'us-west1-b'):
-    print(instance['name'])
+def read(path: str) -> str:
+    return open(os.path.join(HERE, path)).read()
+
+
+def main() -> None:
+    credentials = service_account.Credentials.from_service_account_file(
+        os.path.join(HERE, "service-credentials.json")
+    )
+    compute = googleapiclient.discovery.build("compute", "v1", credentials=credentials)
+
+    config = {
+        "name": VM_NAME,
+        "machineType": f"zones/{ZONE}/machineTypes/e2-micro",
+        "disks": [
+            {
+                "boot": True,
+                "autoDelete": True,
+                "initializeParams": {
+                    "sourceImage": "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts",
+                    "diskType": f"zones/{ZONE}/diskTypes/pd-standard",
+                    "diskSizeGb": "10",
+                },
+            }
+        ],
+        "networkInterfaces": [
+            {
+                "network": "global/networks/default",
+                "accessConfigs": [{"type": "ONE_TO_ONE_NAT", "name": "External NAT"}],
+            }
+        ],
+        "metadata": {
+            "items": [
+                {"key": "startup-script", "value": read("vm1-startup.sh")},
+                {"key": "vm1-launch-vm2-code", "value": read("../part1/part1.py").replace('"lab-5"', f'"{VM2_NAME}"')},
+                {"key": "vm2-startup-script", "value": read("../part1/startup.sh")},
+                {"key": "service-credentials", "value": read("service-credentials.json")},
+            ]
+        },
+    }
+
+    print("Creating instance.")
+    compute.instances().insert(project=PROJECT, zone=ZONE, body=config).execute()
+
+
+if __name__ == "__main__":
+    main()
